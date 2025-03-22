@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+elf = "./target/xtensa-esp32s3-none-elf/debug/IoT_gateway"
+firmware = "./.cargo/config.toml"
