@@ -2,22 +2,12 @@
 #![no_main]
 extern crate alloc;
 
-use alloc::string::ToString;
 use embassy_executor::Spawner;
-use embassy_futures::join::join;
-use embassy_usb::{
-    class::cdc_acm::{CdcAcmClass, State},
-    driver::EndpointError,
-};
-use esp_hal::{
-    clock::CpuClock,
-    otg_fs::{asynch::Driver, Usb},
-    rng::Rng,
-    timer::timg::TimerGroup,
-};
+use embassy_futures::join::join3;
+use embassy_usb::class::cdc_acm::State;
+use esp_hal::{clock::CpuClock, otg_fs::Usb, rng::Rng, timer::timg::TimerGroup};
 use esp_println::println;
 use esp_wifi::{esp_now::EspNow, init};
-use crate::services::usb_serial::UsbSerial;
 
 mod services;
 
@@ -46,7 +36,7 @@ async fn main(_spawner: Spawner) {
     .unwrap();
 
     // 初始化 ESP-NOW
-    let mut esp_now = EspNow::new(&esp_wifi_ctrl, peripherals.WIFI).unwrap();
+    let esp_now = EspNow::new(&esp_wifi_ctrl, peripherals.WIFI).unwrap();
 
     let mut config_descriptor = [0u8; 256];
     let mut bos_descriptor = [0u8; 256];
@@ -56,7 +46,7 @@ async fn main(_spawner: Spawner) {
 
     // 初始化 USB 外设
     let usb = Usb::new(peripherals.USB0, peripherals.GPIO20, peripherals.GPIO19);
-    let (mut class,mut device) = services::usb_serial::init(
+    let (class, mut device) = services::usb_serial::init(
         usb,
         &mut config_descriptor,
         &mut bos_descriptor,
@@ -65,34 +55,42 @@ async fn main(_spawner: Spawner) {
         &mut state,
     );
 
+    let (_control, mut sender, mut receiver) = esp_now.split();
+    let (mut tx, mut rx) = class.split();
+
     // 测试用的异步函数
-    let echo_fut = async {
+    let usb2esp_fn = async {
         loop {
-            class.wait_connection().await;
-            println!("Connected");
-            let _ = usb2espnow(&mut class, &mut esp_now).await;
-            println!("Disconnected");
+            rx.wait_connection().await;
+            println!("Connected: usb2esp");
+
+            let mut buf = [0; 1024];
+            loop {
+                let n = rx.read(&mut buf).await;
+                if let Err(_) = n {
+                    println!("Disconnected: usb2esp");
+                    break;
+                }
+                let n = n.unwrap();
+                let _ = sender.send_async(&[0xFF; 6], &buf[..n]).await;
+            }
         }
     };
 
-    join(device.run(), echo_fut).await;
-}
+    let esp2usb_fn = async {
+        loop {
+            tx.wait_connection().await;
+            println!("Connected: esp2usb");
 
-async fn usb2espnow<'a>(
-    class: &mut UsbSerial<'a>,
-    esp_now: &mut EspNow<'_>,
-) -> Result<(), EndpointError> {
-    let mut buf = [0; 1024];
-    loop {
-        let n = class.read(&mut buf).await?;
-        let data = &buf[..n];
-        class.write(data).await?;
-        // class.write(n.to_string().as_bytes()).await?;
-        // println!("{:?}", &data);
-        let status = esp_now.send(&[0xFF; 6], data).unwrap().wait();
-        // class
-        //     .write_packet(format!("{:?}", status).as_bytes())
-        //     .await?;
-        // let _ = esp_now.send(&[0xFF; 6], r#"{"device_name":"light1","MAC":"","data":{"color":[16777215,8355711,4144959,2039583,986895,460551,197379,65793]}}"#.as_bytes()).unwrap().wait();
-    }
+            loop {
+                let r = receiver.receive_async().await;
+                if let Err(_) = tx.write(r.data()).await {
+                    println!("Disconnected: esp2usb");
+                    break;
+                }
+            }
+        }
+    };
+
+    join3(device.run(), usb2esp_fn, esp2usb_fn).await;
 }

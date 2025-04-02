@@ -1,10 +1,10 @@
 [package]
 edition = "2021"
-name = "IoT_gateway"
+name = "iot_gateway"
 version = "0.1.0"
 
 [[bin]]
-name = "IoT_gateway"
+name = "iot_gateway"
 path = "src/main.rs"
 
 [dependencies]
