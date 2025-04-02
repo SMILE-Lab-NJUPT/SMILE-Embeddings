@@ -1,61 +1,83 @@
-#include <Arduino.h>
-#include <ESP8266WiFi.h>
-#include <espnow.h>
-#include <ArduinoJson.h>
-
+#ifdef LIGHT
 #include "ws2812b.h"
 
-u8 broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+void setup() {
+    ws2812b::setup();
+}
 
-constexpr u8 DEVICE_NAME[] = "light1";
-u8 device_type = 0;
+void loop(){
+    ws2812b::loop();
+}
+#endif
+
+#ifdef LIGHTSENSOR
+#include "gy_302.h"
 
 void setup() {
-    Serial.begin(115200);
-    WiFi.mode(WIFI_STA);
-
-    switch (device_type) {
-        case 0:
-            ws2812b::ws2812b_init();
-            break;
-        default: return;
-    }
-
-    if (esp_now_init()) {
-        Serial.println("Error initializing ESP-NOW");
-        return;
-    }
-
-    esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
-    esp_now_register_send_cb([](u8 *, const u8 sendStatus) {
-        Serial.println("Send broadcast status: " + String(sendStatus));
-    });
-    esp_now_register_recv_cb([](u8 *, u8 *data, u8 len) {
-        Serial.print((char *) data);
-        switch (device_type) {
-            case 0:
-                ws2812b::parse_json(reinterpret_cast<char *>(data));
-                break;
-            default: break;
-        }
-    });
+    gy_302::setup();
 }
 
-auto msg = "Hello, esp8266!";
+void loop(){
+    gy_302::loop();
+}
+#endif
 
-// unsigned long lastTime = 0;
-JsonDocument doc;
+#ifdef HUMANSENSOR
+#include "ld2420.h"
+
+void setup() {
+    ld2420::setup();
+}
+
+void loop(){
+    ld2420::loop();
+}
+#endif
+
+#ifdef AIRCONDITIONER
+#include "ir_remote.h"
+
+void setup() {
+    ir_remote::setup();
+}
 
 void loop() {
-    // if (millis() - lastTime > 2000) {
-    //     // esp_now_send(broadcastAddress, (u8 *) msg, strlen(msg) + 1);
-    //     Serial.println("Send broadcast message: " + String(msg));
-    //     lastTime = millis();
-    // }
-    switch (device_type) {
-        case 0:
-            ws2812b::loop();
-            break;
-        default: break;
-    }
+    ir_remote::loop();
 }
+#endif
+
+#ifdef SMOKESENSOR
+#include "mq2.h"
+
+void setup() {
+    mq2::setup();
+}
+
+void loop() {
+    mq2::loop();
+}
+#endif
+
+#ifdef TEMPHUMSENSOR
+#include "dht11.h"
+
+void setup() {
+    dht11::setup();
+}
+
+void loop(){
+    dht11::loop();
+}
+#endif
+
+#ifdef NFC
+#include "rc522.h"
+
+void setup() {
+    rc522::setup();
+}
+
+void loop() {
+    rc522::loop();
+}
+#endif

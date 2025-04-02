@@ -4,15 +4,17 @@
 #include <FastLED.h>
 
 namespace ws2812b {
+    inline u8 BROADCAST_ADDRESS[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    constexpr u8 LED_PIN = 16;
+    constexpr u8 LEDS_NUM = 10;
     inline JsonDocument doc;
-    constexpr int NUM_LEDS = 10;
-    inline CRGB leds[NUM_LEDS];
+    inline CRGB leds[LEDS_NUM];
 
-    void ws2812b_init();
+    void setup();
+
+    void loop();
 
     void parse_json(String json);
 
-    void update(const JsonDocument& new_colors);
-
-    void loop();
+    void update(const JsonDocument &new_colors);
 }
