@@ -4,7 +4,7 @@
 
 namespace ir_remote {
     inline u8 BROADCAST_ADDRESS[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    constexpr u8 LED_PIN = 16;
+    constexpr u8 LED_PIN = 4;
     inline JsonDocument doc;
 
     void setup();
