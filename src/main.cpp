@@ -70,6 +70,18 @@ void loop(){
 }
 #endif
 
+#ifdef FACE
+#include "fm225.h"
+
+void setup() {
+    fm225::setup();
+}
+
+void loop() {
+    fm225::loop();
+}
+#endif
+
 #ifdef NFC
 #include "rc522.h"
 
