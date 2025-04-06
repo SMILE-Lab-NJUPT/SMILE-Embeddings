@@ -1,13 +1,14 @@
 #![no_std]
 #![no_main]
-extern crate alloc;
 
 use embassy_executor::Spawner;
-use embassy_futures::join::join3;
+use embassy_futures::join::*;
 use embassy_usb::class::cdc_acm::State;
 use esp_hal::{clock::CpuClock, otg_fs::Usb, rng::Rng, timer::timg::TimerGroup};
 use esp_println::println;
 use esp_wifi::{esp_now::EspNow, init};
+
+extern crate alloc;
 
 mod services;
 
